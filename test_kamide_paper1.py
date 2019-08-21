@@ -50,8 +50,9 @@ polymers = [XS_lle_kamide(labels[i],z_sol,teta1[i],teta2[i],
 
 A = 0.535
 
-for p in polymers:
-    plt.figure()
-#    p.estimation_objF(A)
-    p.plot_Experimental_Distributions(plt.gca())
-#    p.plot_Calculated_Distributions(plt.gca())
+p = polymers[0]
+
+plt.figure()
+p.estimation_objF(A)
+p.plot_Experimental_Distributions(plt.gca())
+p.plot_Calculated_Distributions(plt.gca())

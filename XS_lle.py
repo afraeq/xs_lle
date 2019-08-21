@@ -129,11 +129,11 @@ class XS_lle (ABC):
 
         for m in range(1,self.ncomp):
             bounds.append((1e-10,self.z[m]-1e-10))
-
-        self.result_opt = opt.differential_evolution(self.gibbs_energy, 
-                                                     bounds, popsize=40,
-                                                     strategy = 'best2bin',
-                                                     tol=1e-8, maxiter = 2000)
+            
+        self.result_opt = opt.dual_annealing(self.gibbs_energy, 
+                                                     bounds)#, popsize=40,
+                                                     #strategy = 'best2bin',
+                                                     #tol=1e-8, maxiter = 2000)
 
         zI = self.result_opt.x
         zII = self.z - zI

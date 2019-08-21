@@ -95,7 +95,7 @@ class XS_lle_kamide (XS_lle):
     #########################
            
     def gibbs_energy (self, vij_vetor):
-        
+                
         nc = self.ncomp
         nf = self.nf
         vi = self.z
@@ -111,8 +111,8 @@ class XS_lle_kamide (XS_lle):
         mi_nf = np.zeros_like(vi_nf)
             
         for m in range (1,nc):
-            chi_ij[0,m], = self.chi
-            chi_ij[m,0], = self.chi
+            chi_ij[0,m] = self.A
+            chi_ij[m,0] = self.A
     
         for j in range (0,nf-1):
             for i in range (0,nc):
@@ -161,5 +161,5 @@ class XS_lle_kamide (XS_lle):
             mi_nf[i] = (np.log(phi_i_nf[i]) + 
                         sum1 + n[i]*(((1-phi_i_nf[i])*sum2 - sum3)))
             dG += (vi_nf[i]/v_bar[i])*mi_nf[i]
-        
+                    
         return dG

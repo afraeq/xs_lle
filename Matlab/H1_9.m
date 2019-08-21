@@ -1,16 +1,18 @@
+%% funcao que faz a estimacao de parametros
+
 function H1_9
+
+format long;
+
+fig_name ='H1-9.png';
+file_name ='H1-9.mat';
 
 %% dados experimentais
 
-% massa molar media
-MW = 582261;
-
 % xs, a fracao do polimero extraida pelo xileno
-
 xs_fraction = 3.98e-2;
 
 % parametros das distribuicoes dos produtos finais (alimentacao do flash)
-
 teta1_feed = 1.29e-4;
 teta2_feed = 6.08e-4;
 alpha_feed = .868;
@@ -18,20 +20,23 @@ q1_feed = exp(-teta1_feed);
 q2_feed = exp(-teta2_feed);
 
 % parametros das distribuicoes dos soluveis
-
 teta1_xs = 0.000000;
 teta2_xs = 6.348e-4;
 alpha_xs = 0.000;
 q1_xs = exp(-teta1_xs);
 q2_xs = exp(-teta2_xs);
 
-% tamanhos de cadeia
-
+% tamanhos minimo e maximo da cadeia
 r_min = 10;
 r_max = 50000;
+
+% tamanhos de cadeia
 r = 1:r_max;
 
-% distribuicoes experimentais
+% distribuicoes em si
+%feed_exp = zeros(1, length(r));
+%xs_exp = feed_exp;
+%ins_exp = feed_exp;
 
 feed_exp = shulz_flory2 (r, q1_feed, q2_feed, alpha_feed);
 xs_exp = shulz_flory2 (r, q1_xs, q2_xs, alpha_xs);
@@ -39,16 +44,15 @@ ins_exp = (feed_exp-xs_fraction*xs_exp)/(1-xs_fraction);
 ins_exp((ins_exp<0)) = 0;
 
 % escolhendo os pseudocomponentes (classes)
-
 n_class = 24;
 delta_log_r = (log(r_max)- log(r_min))/(n_class-1);
 r_class = zeros (1,n_class);
+
 for f=1:n_class
     r_class(f) = floor(exp((f-1)*delta_log_r+log(r_min)));
 end
 
-% distribuicoes com 'n_class' componentes
-
+% distribuicoes com n_class componentes
 feed_exp_class = zeros (1,n_class);
 xs_exp_class = feed_exp_class;
 ins_exp_class = feed_exp_class;
@@ -79,39 +83,43 @@ end
 
 r_class = aux;
 
+%% pra plotar maneiro
+
+figure(1);
+
+lw = 2.2;       % LineWidth
+alw = 1.2;      % AxesLineWidth
+msz = 8;        % MarkerSize
+fsz = 13;       % Fontsize
+
+set(0,'defaultLineLineWidth',lw);           % set the default line width to lw
+set(0,'defaultAxesLineWidth',alw);          % set the default axis line width to alw
+set(0,'defaultLineMarkerSize',msz);         % set the default line marker size to msz
+set(0,'defaultAxesFontSize',fsz);           % set the default font size to fsz
+set(gcf,'Position',get(0,'ScreenSize'))     % set the figure to screen size
+set(gcf,'PaperPositionMode','auto')         % save figure with size of screen
+set(gcf,'Visible', 'off');                  % keep from popping up
+
 %% condicoes
 
 % numero de fases
-
 nf = 2;
 
 % tamanhos de cadeia
-
 n_sol = 1;
 n_pol = r_class;
-n = [n_sol n_pol];
+n = [n_sol n_pol];  % n_pol eh argumento
 
 % numero de componentes
-
 nc = length(n);
 
 % volumes molares
-
 v_bar = n;
 
 % volumes globais
-
 vi_sol = 0.97738;
 vi_pol = (1-vi_sol)*feed_exp_class;
 vi = [vi_sol vi_pol];
-
-%% rodando a estimacao de parametros
-
-% inicializando o chi
-
-chi = zeros(nc,nc);
-
-% faixa das variaveis de otimizacao
 
 bounds1_eq = zeros(nc,1);
 bounds2_eq = bounds1_eq;
@@ -121,20 +129,20 @@ for m=1:nc
     bounds2_eq(m) = vi(m) - 1e-10;
 end
 
-% estima!
+chi = zeros(nc,nc);
+
+% rodando a estimacao de parametros
 
 options_eq = optimoptions(@particleswarm,'Display','Off','TolFun',1e-8,'UseParallel',true);
 options_estima = optimoptions(@particleswarm,'Display','Off','TolFun',1e-4);
 chi_otimo = particleswarm (@objF,1,0.50,0.55,options_estima);
 
-% calculando o equilibrio para o chi otimo encontrado
+% calculando o equilibrio para o chi otimo
 
 for m=2:nc
     chi(1,m) = chi_otimo;
     chi(m,1) = chi_otimo;
 end
-
-% composicoes otimas
 
 vi_fase1_otimo = particleswarm (@deltaG,(nc*(nf-1)),bounds1_eq,bounds2_eq,options_eq);
 vi_fase2_otimo = (vi-vi_fase1_otimo);
@@ -142,9 +150,49 @@ vi_fase2_otimo = (vi-vi_fase1_otimo);
 phi_fase1_otimo = vi_fase1_otimo/sum(vi_fase1_otimo);
 phi_fase2_otimo = vi_fase2_otimo/sum(vi_fase2_otimo);
 
-% salvando arquivo com os dados e resultados a serem processados posteriormente
+%% calculando o xs e plotando
 
-save(file_name, 'xs_fraction', 'MW', 'chi_otimo', 'phi_fase1_otimo', 'phi_fase2_otimo','n_pol','feed_exp_class','xs_exp_class','ins_exp_class');
+subplot(1,2,2)
+
+hold on
+
+plot(n_pol,feed_exp_class,'--*k')
+
+if phi_fase1_otimo(1) > phi_fase2_otimo(1)
+%    xs_otimo = sum(vi_fase1_otimo(2:end))/(1-vi_sol);
+    y_max = 1.1*max(phi_fase1_otimo(2:end)/sum(phi_fase1_otimo(2:end)));
+    plot(n_pol,phi_fase1_otimo(2:end)/sum(phi_fase1_otimo(2:end)),'--*r')
+    plot(n_pol,phi_fase2_otimo(2:end)/sum(phi_fase2_otimo(2:end)),'--*b')
+else
+%    xs_otimo = sum(vi_fase2_otimo(2:end))/(1-vi_sol);
+    y_max = 1.1*max(phi_fase2_otimo(2:end)/sum(phi_fase2_otimo(2:end)));
+    plot(n_pol,phi_fase2_otimo(2:end)/sum(phi_fase2_otimo(2:end)),'--*r')
+    plot(n_pol,phi_fase1_otimo(2:end)/sum(phi_fase1_otimo(2:end)),'--*b')
+end
+
+axis([0 n_pol(end) 0 y_max])
+
+text(0.65*n_pol(end),0.8*y_max,['\chi = ',num2str(chi_otimo, 6)],'FontSize',13)
+
+title('Distribuicao Calculada Através do Modelo')
+legend('Alimentacao','Fase solvente','Fase polimero')
+xlabel('Tamanho de cadeia')
+ylabel('Fracao volumetrica')
+
+subplot(1,2,1)
+
+plot(n_pol,feed_exp_class,'--*k',n_pol,xs_exp_class,'--*r',n_pol,ins_exp_class,'--*b')
+
+axis([0 n_pol(end) 0 y_max])
+
+title('Distribuicao Experimental')
+legend('Alimentacao','Fase solvente','Fase polimero')
+xlabel('Tamanho de cadeia')
+ylabel('Fracao volumetrica')
+
+print (gcf, fig_name, '-dpng', '-r0')
+
+save(file_name, 'chi_otimo', 'xs_otimo', 'vi_fase1_otimo', 'vi_fase2_otimo');
 
 %% funcao objetivo para calculo de equilibrio: energia livre de gibbs
 
@@ -234,25 +282,23 @@ save(file_name, 'xs_fraction', 'MW', 'chi_otimo', 'phi_fase1_otimo', 'phi_fase2_
         
         phi_fase1 = vi_fase1/sum(vi_fase1);
         phi_fase2 = vi_fase2/sum(vi_fase2);
-
-	% calculando a funcao objetivo
         
         if (phi_fase1(1)>phi_fase2(1))
             xs_modelo = vi_fase1(2:end)/sum(vi_fase1(2:end));
             ins_modelo = vi_fase2(2:end)/sum(vi_fase2(2:end));
+ %           objF = (sum(vi_fase1(2:end))/(1-vi_sol)-xs_fraction)^2;
         else
             ins_modelo = vi_fase1(2:end)/sum(vi_fase1(2:end));
             xs_modelo = vi_fase2(2:end)/sum(vi_fase2(2:end));
+ %           objF = (sum(vi_fase2(2:end))/(1-vi_sol)-xs_fraction)^2;
         end
         
         objF = sum((xs_modelo-xs_exp_class).^2)+sum((ins_modelo-ins_exp_class).^2);
         
     end
 
-%% distribuicao de shulz-flory
-
-    function psi = shulz_flory2 (r,q1,q2,alpha)
-        psi = (alpha*(1-q1)*(1-q1)*(q1.^(r-1))).*r + ((1-alpha)*(1-q2)*(1-q2)*(q2.^(r-1))).*r; 
-    end
+function psi = shulz_flory2 (r,q1,q2,alpha)
+    psi = (alpha*(1-q1)*(1-q1)*(q1.^(r-1))).*r + ((1-alpha)*(1-q2)*(1-q2)*(q2.^(r-1))).*r; 
+end
 
 end

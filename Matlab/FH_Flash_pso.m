@@ -1,4 +1,4 @@
-function FH_minGibbs_pso (chi_input)
+function FH_Flash_pso (chi_input)
 
 format long;
 
@@ -51,10 +51,6 @@ for m=2:nc
     chi(1,m) = chi_input;
     chi(m,1) = chi_input;
 end
-
-% PARA QUE USO O MODELO?
-% QUAL O LIMITE DO MODELO? POSSO USAR EM QUE?
-% PRA QUE FIZEMOS ISSO? PRA APLICAR EM QUE?
 
 %% funcao objetivo para calculo de equilibrio: energia livre de gibbs
 
@@ -169,9 +165,13 @@ legend('Alimentacao','Fase solvente','Fase polimero')
 xlabel('Tamanho de cadeia')
 ylabel('Fracao volumetrica')
 
-chi_input_str = num2str(chi_input*100,2);
+%chi_input_str = num2str(chi_input*100,2);
+%save(strcat('FH_minGibbs_pso_',chi_input_str,'.mat'),'xs','deltaG_min', 'vi_fase1', 'vi_fase2')
 
-save(strcat('FH_minGibbs_pso_',chi_input_str,'.mat'),'xs','deltaG_min', 'vi_fase1', 'vi_fase2')
+%%
+function psi = shulz_flory (r,p)
+    psi = r.*((1-p).^2).*p.^(r-1);
+end
 
 end
 

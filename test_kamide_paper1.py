@@ -52,7 +52,6 @@ A = 0.535
 
 p = polymers[0]
 
-plt.figure()
 p.estimation_objF(A)
 p.plot_Experimental_Distributions(plt.gca())
 p.plot_Calculated_Distributions(plt.gca())

@@ -159,12 +159,12 @@ hold on
 plot(n_pol,feed_exp_class,'--*k')
 
 if phi_fase1_otimo(1) > phi_fase2_otimo(1)
-%    xs_otimo = sum(vi_fase1_otimo(2:end))/(1-vi_sol);
+    xs_otimo = sum(vi_fase1_otimo(2:end))/(1-vi_sol);
     y_max = 1.1*max(phi_fase1_otimo(2:end)/sum(phi_fase1_otimo(2:end)));
     plot(n_pol,phi_fase1_otimo(2:end)/sum(phi_fase1_otimo(2:end)),'--*r')
     plot(n_pol,phi_fase2_otimo(2:end)/sum(phi_fase2_otimo(2:end)),'--*b')
 else
-%    xs_otimo = sum(vi_fase2_otimo(2:end))/(1-vi_sol);
+    xs_otimo = sum(vi_fase2_otimo(2:end))/(1-vi_sol);
     y_max = 1.1*max(phi_fase2_otimo(2:end)/sum(phi_fase2_otimo(2:end)));
     plot(n_pol,phi_fase2_otimo(2:end)/sum(phi_fase2_otimo(2:end)),'--*r')
     plot(n_pol,phi_fase1_otimo(2:end)/sum(phi_fase1_otimo(2:end)),'--*b')

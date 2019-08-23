@@ -37,6 +37,7 @@ alpha = np.array([[0.868, 0.000],[0.237, 0.000],[0.549, 0.053],
 
 mw = np.array([582261, 242779, 349674, 514920, 540133, 435169, 246094])
 
+#porque nao usou todos os dados disponiveis<---------------------------------------------------
 xs = 1e-2*np.array([3.98, 4.58, 4.59, 3.43, 6.67, 6.48, 4.53])
 
 # creating list of objects for each polymer

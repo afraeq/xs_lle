@@ -51,13 +51,21 @@ class XS_lle_kamide (XS_lle):
         xs_exp_class   = np.zeros(nclass)
         ins_exp_class  = np.zeros(nclass)
         aux            = np.zeros(nclass)
-
+        
+        #print(range(rclass))
+        
         delta_log_r = (np.log(self.rmax)- np.log(self.rmin))/(nclass-1)
-
+        #print(delta_log_r)
+        
         for i in range(nclass):
             rclass[i] = np.floor(np.exp((i)*delta_log_r+np.log(self.rmin)))
-
-        feed_exp_class[0] = sum(self.feed_exp[0:int(rclass[0])+1])
+        
+        #print(rclass)
+        
+        #print(self.feed_exp[0:11])
+        
+        #usar mais o int aqui nao eh overkill????segurança???<------------------------------------------------------------------------------
+        feed_exp_class[0] = sum(self.feed_exp[0:int(rclass[0])+1]) #é necessario o +1 porque o python exclui o valor representado pelo ultimo indice, então se quisermos pegar o valor dado pelo indice rclass[0] eh necessario colocar esse +1
         xs_exp_class[0]   = sum(self.xs_exp[0:int(rclass[0])+1])
         ins_exp_class[0]  = sum(self.ins_exp[0:int(rclass[0])+1])
 
@@ -67,20 +75,32 @@ class XS_lle_kamide (XS_lle):
             xs_exp_class[i] = sum(self.xs_exp[int(rclass[i-1]):
                                               int(rclass[i])+1])
             ins_exp_class[i] = sum(self.ins_exp[int(rclass[i-1]):
-                                                int(rclass[i])+1])
+              
+                                  int(rclass[i])+1])
+    
+       # print(feed_exp_class[0])
 
+        #Normalização???
         feed_exp_class = feed_exp_class/sum(feed_exp_class)
         xs_exp_class = xs_exp_class/sum(xs_exp_class)
         ins_exp_class = ins_exp_class/sum(ins_exp_class)
 
+        #print(sum(feed_exp_class))
+        
+        
         aux[:] = rclass
 
         aux[0] = np.floor(np.exp(((np.log(rclass[0])+np.log(1)/2))))
+        
+
+
 
         for i in range (1,nclass):
             aux[i] =  np.floor(np.exp(((np.log(rclass[i])+
                                         np.log(rclass[i-1]))/2)))
-            
+        #print(np.log(rclass[1]))    
+        #print(np.log(rclass[0]))
+        #print(aux[1])   
         self.r_pol     = aux
 
         self.feed_exp  = feed_exp_class

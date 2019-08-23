@@ -46,7 +46,8 @@ class XS_lle (ABC):
         # polymer label
         self.label = label
 
-        # solvent extensive volume
+        # solvent extensive volume <---------------------------------------------------------------------------------------
+        #estranho, ver linha 112
         self.z_sol = np.array([z_sol])
 
         # shulz-flory parameters
@@ -71,6 +72,7 @@ class XS_lle (ABC):
         self.r_pol = np.arange(1,40000)
         
         # experimental feed distribution
+        #NORMALIZACAO????????????????????????????????????????????????????????<------------------------------------------
         self.feed_exp = ((self.shulz_flory(self.r_pol,
                                            self.q1_exp[0],
                                            self.q2_exp[0],
@@ -79,8 +81,11 @@ class XS_lle (ABC):
                                               self.q1_exp[0],
                                               self.q2_exp[0],
                                               self.alpha_exp[0])))
-
+        
+        
+        #print(sum(self.shulz_flory(self.r_pol,self.q1_exp[0],self.q2_exp[0],self.alpha_exp[0])))
         # experimental xs distribution
+        #nomeclatura não esta calara, na verdade xs exp é a curva de fracoes mássicas dos diversos tamanhos de polímeros que permaneceram na fase liquida apos o resfriamneto da solucao do teste xs, portanto esse vetor armazena a curva de distribuição de tamanhos dos polímeros que firaram na fase líquida ou seja e a curva do pp que e atatico
         self.xs_exp = ((self.shulz_flory(self.r_pol,
                                         self.q1_exp[1],
                                         self.q2_exp[1],
@@ -91,6 +96,8 @@ class XS_lle (ABC):
                                             self.alpha_exp[1])))
 
         # experimental insolubles distribution
+        #this expression came from a mass balance
+        #look in comments in the end of file
         self.ins_exp = ((self.feed_exp-self.xs_fraction*self.xs_exp)/
                         (1-self.xs_fraction))
         for i in range(len(self.ins_exp)):
@@ -101,6 +108,7 @@ class XS_lle (ABC):
         self.generate_pseudo_comp()
 
         # polymer extensive volumes
+        #mass fraction given by the shultz flory model is equal to de volume fraction, in this special case as shown by afranio
         self.z_pol = (1-self.z_sol)*self.feed_exp
 
         # solvent + polymers chain lengths
@@ -118,6 +126,10 @@ class XS_lle (ABC):
     #########################
 
     def shulz_flory (self,r,q1,q2,alpha):
+        #output-> mass fraction of a component with a chain size of r (mass fraction=(mass of polymer of size r in phase j)/(total polýmer mass of polymer in phase j))
+        #input-> chain size (r)
+        #input-> shultz flory parameter (q1 and q2) (probability of propagation of a polymer chain in an certain reactive site (site 1 or site 2) )
+        #input-> relative activity of a catalitic site (alpha), in this case there are only two sites therfore de second site relative activity will be alpha-1
         return ((alpha*(1-q1)*(1-q1)*(q1**(r-1)))*r + 
                 ((1-alpha)*(1-q2)*(1-q2)*(q2**(r-1)))*r)
 
@@ -125,11 +137,17 @@ class XS_lle (ABC):
 
     def min_gibbs_energy (self):
 
+        
+        #porque esses limites?????????????????????<-------------------------------------------------------------------------------
         bounds = [(1e-10, self.z[0]-1e-10)]
 
         for m in range(1,self.ncomp):
             bounds.append((1e-10,self.z[m]-1e-10))
 
+
+        # gibbs energy minimiztion for equilibrium calculations
+        #differential evolution method is an genetic algorithm minimization strategy
+        #for details look at: https://docs.scipy.org/doc/scipy-0.16.0/reference/generated/scipy.optimize.differential_evolution.html
         self.result_opt = opt.differential_evolution(self.gibbs_energy, 
                                                      bounds, popsize=40,
                                                      strategy = 'best2bin',
@@ -256,3 +274,56 @@ class XS_lle (ABC):
     @abstractmethod
     def equilibrium_equations ():
         pass
+
+#
+#wi=(massa de polímero de tamanho i em determinada fase)/(massa total do polimero naquela fase)
+#Xs=(massa de polímero obtida da fase líquida do teste xs)/(massa de polímero obtida da fase líquida do teste xs + massa de polímero obtida da fase solida do teste xs)
+#Xs=(massa de polímero obtida da fase líquida do teste xs)/(massa total de polimero utilizada no teste xs)
+#assim podemos dizer que Xs=mfl/(mfl+mfs)=mfl/mfa
+#        
+# wifs=fracao massica do polimero de tamanho i na fase solida obtida no teste xs
+# wifl=fracao massica do polimero de tamanho i na fase liquida obtida no teste xs
+# wifa=fracao masica do polimero de tamanho i na alimentacao (feed) 
+# a distribuicao das fracoes massicas dos polimeros em cada fase sao obtidads da analise gpc         
+# mfs=massa total dos polimeros ma fase solida obtida no teste xs 
+# mfl=massa total dos polimeros ma fase liquida obtida no teste xs  
+# mfa=massa total de polimero utilizada no teste xs 
+#     
+#Balanco de massa
+#     
+# wifx * mfs + wifl * mfl = wifa * mfa
+#     
+#mas
+#   mfl= Xs * mfa
+#     
+# logo
+# wifs * mfs = wifa * mfa - wifl * Xs * mfa 
+#     
+# wifs * mfs = (wifa - wifl * Xs) * mfa 
+#     
+# wifs = (wifa - wifl * Xs) * (mfa/mfs) 
+#     
+# wifs = (wifa - wifl * Xs) / (mfs/mfa) 
+#    
+# entretanto podemos dizer que:
+#     
+#    (mfs/mfa) + (mfl/mfa) = 1  
+#    (mfs/mfa) + Xs = 1
+#    (mfs/mfa) = 1 - Xs
+#     
+# Por fim obtemos    
+#     
+#   wifs = (wifa - wifl * Xs) / (1 - Xs)  
+#     
+#     Essa e a forma que esta no codigo
+#     
+#     
+# 
+#         
+#    
+#    
+#    
+#    
+#    
+#    
+#   

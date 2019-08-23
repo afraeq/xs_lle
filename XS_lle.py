@@ -38,6 +38,7 @@ and
 import numpy as np
 import scipy.optimize as opt
 from abc import ABC, abstractmethod
+from pyswarm import pso
 
 class XS_lle (ABC):
 
@@ -130,16 +131,39 @@ class XS_lle (ABC):
         for m in range(1,self.ncomp):
             bounds.append((1e-10,self.z[m]-1e-10))
             
-        self.result_opt = opt.dual_annealing(self.gibbs_energy, 
-                                                     bounds)#, popsize=40,
-                                                     #strategy = 'best2bin',
-                                                     #tol=1e-8, maxiter = 2000)
+#        self.result_opt = opt.dual_annealing(self.gibbs_energy, 
+#                                                     bounds)#, popsize=40,
+#                                                     strategy = 'best2bin',
+#                                                     tol=1e-8, maxiter = 2000)
 
-        zI = self.result_opt.x
+
+#        print(self.result_opt.fun)
+        
+#        zI = self.result_opt.x
+
+        lb = [1e-10 for _ in range(self.ncomp)]
+        ub = [self.z[m]-1e-10 for m in range(self.ncomp)]
+
+        xopt, fopt = pso(self.gibbs_energy, lb, ub, 
+                         minfunc = 1e-16, minstep = 1e-14,
+                         swarmsize = 100, maxiter = 200)        
+        
+#        print(fopt)
+        zI = xopt    
+        
         zII = self.z - zI
 
         self.phiI = zI/sum(zI)
         self.phiII = zII/sum(zII)
+        
+        # to mantain compatibility with
+        # scipy.optimize usage
+        class results(object):
+            pass
+        
+        self.result_opt = results()
+        self.result_opt.success = True
+        self.result_opt.x = xopt
 
         return self.result_opt
 

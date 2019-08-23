@@ -8,6 +8,7 @@ Created on Fri Aug  2 20:53:15 2019
 
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 from XS_lle_kamide import XS_lle_kamide
 
@@ -48,10 +49,14 @@ polymers = [XS_lle_kamide(labels[i],z_sol,teta1[i],teta2[i],
 # RUNNING TEST FLASH CALCULATION
 #################################
 
-A = 0.535
+A = 0.5168
 
 p = polymers[0]
 
+start_time = time.time()
 p.estimation_objF(A)
+elapsed_time = time.time() - start_time
+print(elapsed_time)
+
 p.plot_Experimental_Distributions(plt.gca())
 p.plot_Calculated_Distributions(plt.gca())

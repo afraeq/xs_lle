@@ -1,48 +1,17 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Determination of Flory-Huggins Interaction Parameters 
-for Polypropylene+Xylene Polydisperse Solutions from
-Xylene Solubles (XS) Analysis Data
-
-@author: afranio
-         afrjr.weebly.com
-
-This module was devoloped to perform calculations with data from three papers:
-
-    MATOS, V., MATTOS NETO, A. G., PINTO, J. C., 2001
-    “Method for Quantita- tive Evaluation of Kinetic Constants in
-    Olefin Polymerizations
-    I. Kinetic Study of a Conventional Ziegler-Natta Catalyst Used for
-    Propylene Poly- merizations”,
-    Journal of Applied Polymer Science, v. 79, pp. 2076–2018.
-
-,
-
-    MATOS, V., MATTOS NETO, A. G., PINTO, J. C., et al., 2002,
-    “Method for Quantitative Evaluation of Kinetic Constants in
-    Olefin Polymerizations.
-    II. Kinetic Study of a High-Activity Ziegler–Natta Catalyst Used for
-    Bulk Propylene Polymerizations”,
-    Journal of Applied Polymer Science, v. 86, pp. 3226–3245.
-
-and
-
-    MATOS, V., MOREIRA, M., MATTOS NETO, A. G., et al., 2007,
-    “Method for Quantitative Evaluation of Kinetic Constants in
-    Olefin Polymerizations. III. Kinetic Study of the hiPP Synthesis”,
-    Macromolecular Reaction Engineering, v. 1, pp. 137–159.
-
-"""
-
 import numpy as np
-import scipy.optimize as opt
+import scipy.optimize
+import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
-from pyswarm import pso
 
-class XS_lle (ABC):
+class PolyLLE (ABC):
 
-    def __init__ (self, label, z_sol, teta1, teta2, alpha, mw, xs_fraction):
+    def __init__ (self, label = 'pol1', z_sol = 0.98,
+                  shulz_kind = '1P', r_pol = np.arange(10,10**4), 
+                  p = [0.999,0.995],
+                  teta1 = None, teta2 = None,
+                  coarsen = True,
+                  alpha = None, xs_fraction = 0.05,
+                  equilibrium_method = 'equations'):
 
         # polymer label
         self.label = label
@@ -52,12 +21,13 @@ class XS_lle (ABC):
 
         # shulz-flory parameters
         # [0]: feed, [1]: solubles
-        self.q1_exp = np.exp(-teta1)
-        self.q2_exp = np.exp(-teta2)
-        self.alpha_exp = alpha
 
-        # feed mean molar mass
-        self.mw = mw
+        if shulz_kind == '1P':
+            self.p = p
+        elif shulz_kind == '3P':
+            self.q1_exp = np.exp(-teta1)
+            self.q2_exp = np.exp(-teta2)
+            self.alpha_exp = alpha
 
         # xs fraction: polymer fraction extracted by xylene
         self.xs_fraction = xs_fraction
@@ -69,27 +39,42 @@ class XS_lle (ABC):
         self.r_sol = np.array([1])
 
         # polymer chain lengths
-        self.r_pol = np.arange(1,40000)
-        
-        # experimental feed distribution
-        self.feed_exp = ((self.shulz_flory(self.r_pol,
-                                           self.q1_exp[0],
-                                           self.q2_exp[0],
-                                           self.alpha_exp[0]))/
-                         sum(self.shulz_flory(self.r_pol,
-                                              self.q1_exp[0],
-                                              self.q2_exp[0],
-                                              self.alpha_exp[0])))
 
-        # experimental xs distribution
-        self.xs_exp = ((self.shulz_flory(self.r_pol,
-                                        self.q1_exp[1],
-                                        self.q2_exp[1],
-                                        self.alpha_exp[1]))/
-                       sum(self.shulz_flory(self.r_pol,
-                                            self.q1_exp[1],
-                                            self.q2_exp[1],
-                                            self.alpha_exp[1])))
+        self.r_pol = r_pol
+
+        if shulz_kind == '1P':
+
+            # experimental feed distribution
+
+            dist = self.shulz_flory_1P(self.r_pol, self.p[0])
+
+            self.feed_exp = dist/sum(dist)
+
+            # experimental solubles distribution
+
+            dist = self.shulz_flory_1P(self.r_pol, self.p[1])
+
+            self.xs_exp = dist/sum(dist)
+
+        elif shulz_kind == '3P':
+
+            # experimental feed distribution
+
+            dist = self.shulz_flory_3P(self.r_pol,
+                                    self.q1_exp[0],
+                                    self.q2_exp[0],
+                                    self.alpha_exp[0])
+
+            self.feed_exp = dist/sum(dist)
+
+            # experimental solubles distribution
+
+            dist = self.shulz_flory_3P(self.r_pol,
+                                    self.q1_exp[1],
+                                    self.q2_exp[1],
+                                    self.alpha_exp[1])
+
+            self.xs_exp = dist/sum(dist)
 
         # experimental insolubles distribution
         self.ins_exp = ((self.feed_exp-self.xs_fraction*self.xs_exp)/
@@ -99,7 +84,8 @@ class XS_lle (ABC):
                 self.ins_exp[i] = 0
                 
         # generating pseudo components
-        self.generate_pseudo_comp()
+        if coarsen:
+            self.generate_pseudo_comp()
 
         # polymer extensive volumes
         self.z_pol = (1-self.z_sol)*self.feed_exp
@@ -111,59 +97,41 @@ class XS_lle (ABC):
         self.z = np.concatenate ([self.z_sol, self.z_pol])
 
         # number of components
-        self.ncomp = len(self.r)
+        self.n_comp = len(self.r)
 
         # number of polymer pseudocomponents
-        self.npol  = len(self.r_pol)    
+        self.n_pol  = len(self.r_pol)    
+
+        # optimize or equations
+        self.equilibrium_method = equilibrium_method
 
     #########################
 
-    def shulz_flory (self,r,q1,q2,alpha):
+    def shulz_flory_3P (self,r,q1,q2,alpha):
         return ((alpha*(1-q1)*(1-q1)*(q1**(r-1)))*r + 
                 ((1-alpha)*(1-q2)*(1-q2)*(q2**(r-1)))*r)
 
     #########################
 
+    def shulz_flory_1P (self, r, p):
+        return r*((1-p)**2)*p**(r-1)
+
+    #########################
+
     def min_gibbs_energy (self):
 
-        bounds = [(1e-10, self.z[0]-1e-10)]
+        lb = 1e-6*np.ones((self.n_comp,))
+        ub = self.z - 1e-10
 
-        for m in range(1,self.ncomp):
-            bounds.append((1e-10,self.z[m]-1e-10))
-            
-#        self.result_opt = opt.dual_annealing(self.gibbs_energy, 
-#                                                     bounds)#, popsize=40,
-#                                                     strategy = 'best2bin',
-#                                                     tol=1e-8, maxiter = 2000)
+        bounds = [(lb[i], ub[i]) for i in range(self.n_comp)]
 
+        self.result_opt = scipy.optimize.direct(self.gibbs_energy, bounds)
 
-#        print(self.result_opt.fun)
-        
-#        zI = self.result_opt.x
-
-        lb = [1e-10 for _ in range(self.ncomp)]
-        ub = [self.z[m]-1e-10 for m in range(self.ncomp)]
-
-        xopt, fopt = pso(self.gibbs_energy, lb, ub, 
-                         minfunc = 1e-16, minstep = 1e-14,
-                         swarmsize = 100, maxiter = 200)        
-        
-#        print(fopt)
-        zI = xopt    
-        
+        zI = self.result_opt.x      
         zII = self.z - zI
 
         self.phiI = zI/sum(zI)
         self.phiII = zII/sum(zII)
-        
-        # to mantain compatibility with
-        # scipy.optimize usage
-        class results(object):
-            pass
-        
-        self.result_opt = results()
-        self.result_opt.success = True
-        self.result_opt.x = xopt
 
         return self.result_opt
 
@@ -171,8 +139,8 @@ class XS_lle (ABC):
     
     def solve_equilibrium_equations (self, x0):
 
-        self.result_eq = opt.root(self.equilibrium_equations, 
-                                  x0, method='hybr')
+        self.result_eq = scipy.optimize.root(self.equilibrium_equations, 
+                                             x0, method='hybr')
         return self.result_eq
 
     #########################
@@ -183,7 +151,7 @@ class XS_lle (ABC):
                 
         if self.equilibrium_method == 'equations':
         
-            if A>=0.51 and A<0.515:
+            if A<0.515:#A>=0.51 and 
                 x0 = [-0.001, 0.0001, 5, 0.9]
             if A>=0.515 and A<0.52:
                 x0 = [-0.03, 0.0003, 20, 0.5]
@@ -193,7 +161,7 @@ class XS_lle (ABC):
                 x0 = [-0.08, 0.0017, 90, 0.25]
             if A>=0.54 and A<0.55:
                 x0 = [-0.12, 0.003, 150, 0.19]
-            if A>=0.55 and A<0.56:
+            if A>=0.55:# and A<0.56:
                 x0 = [-0.15, 0.004, 225, 0.15]
 
             result = self.solve_equilibrium_equations(x0)
@@ -218,19 +186,26 @@ class XS_lle (ABC):
 
     def estimation (self):
 
-        bounds = [(0.51, 0.56)]
-        result_estimation = opt.differential_evolution(self.estimation_objF, 
-                                                       bounds)
-        self.A = result_estimation.x[0]
+        #bounds = [(0.51, 0.56)]
+        #result_estimation = scipy.optimize.differential_evolution(
+        #                    self.estimation_objF, bounds)
+        self.result_estimation = \
+            scipy.optimize.minimize_scalar(self.estimation_objF, 
+                                           bounds=(0.51,0.56),
+                                           method='bounded')
+        self.A = self.result_estimation.x#[0]
         self.estimation_objF(self.A)
-        return result_estimation
+        return self.result_estimation
 
     #########################
 
-    def plot_Experimental_Distributions (self,ax):
+    def plot_Experimental_Distributions (self,ax=None):
+
+        if ax is None:
+            ax=plt.gca()
 
         ax.plot(self.r_pol, self.feed_exp, 
-                 'k', label = 'Feed')
+                 'k',label = 'Feed')
         ax.plot(self.r_pol, self.xs_exp, 
                  'b', label = 'Solubles, experimental')
         ax.plot(self.r_pol, self.ins_exp, 
@@ -242,7 +217,13 @@ class XS_lle (ABC):
 
     #########################
 
-    def plot_Calculated_Distributions (self,ax):
+    def plot_Calculated_Distributions (self,ax = None):
+
+        if ax is None:
+            ax=plt.gca()
+
+        ax.plot(self.r_pol, self.feed_exp, 
+                 'k', label = 'Feed')
 
         if self.phiI[0] > self.phiII[0]:
             ax.plot(self.r_pol,self.phiI[1:]/sum(self.phiI[1:]),
@@ -280,3 +261,7 @@ class XS_lle (ABC):
     @abstractmethod
     def equilibrium_equations ():
         pass
+
+
+
+

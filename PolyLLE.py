@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 
 class PolyLLE (ABC):
 
-    def __init__ (self, label = 'pol1', z_sol = 0.98,
+    def __init__ (self, label = '', z_sol = 0.98,
                   shulz_kind = '1P', r_pol = np.arange(10,10**4), 
                   p = [0.999,0.995],
                   teta1 = None, teta2 = None,
@@ -199,7 +199,7 @@ class PolyLLE (ABC):
 
     #########################
 
-    def plot_Experimental_Distributions (self,ax=None):
+    def plot_Experimental_Distributions (self, ax = None):
 
         if ax is None:
             ax=plt.gca()
@@ -207,42 +207,31 @@ class PolyLLE (ABC):
         ax.plot(self.r_pol, self.feed_exp, 
                  'k',label = 'Feed')
         ax.plot(self.r_pol, self.xs_exp, 
-                 'b', label = 'Solubles, experimental')
+                 'b', label = 'Solubles (experimental)',ls=(0, (5, 1)))
         ax.plot(self.r_pol, self.ins_exp, 
-                 'r', label = 'Insolubles, experimental')
-        ax.set_title(self.label)
-        ax.set_xlabel('Chain length, $r_i$')
-        ax.set_ylabel('Mass fraction, $w_i$')
-        ax.legend()
+                 'r', label = 'Insolubles (experimental)',ls=(0, (1, 1)))
 
     #########################
 
-    def plot_Calculated_Distributions (self,ax = None):
+    def plot_Calculated_Distributions (self, ax = None, plot_feed = False):
 
         if ax is None:
             ax=plt.gca()
 
-        ax.plot(self.r_pol, self.feed_exp, 
-                 'k', label = 'Feed')
+        if plot_feed:
+            ax.plot(self.r_pol, self.feed_exp, 
+                   'k', label = 'Feed')
 
         if self.phiI[0] > self.phiII[0]:
             ax.plot(self.r_pol,self.phiI[1:]/sum(self.phiI[1:]),
-                     '#00B0B2', label = 'Solubles, calculated')
+                     '#00B0B2', label = 'Solubles (calculated)',ls= (0, (5, 1)))
             ax.plot(self.r_pol,self.phiII[1:]/sum(self.phiII[1:]),
-                     '#FF6900',  label = 'Insolubles, calculated')
-            ax.set_title(self.label+', A = '+str(self.A))
-            ax.set_xlabel('Chain length, $r_i$')
-            ax.set_ylabel('Mass fraction, $w_i$')
-            ax.legend()
+                     '#FF6900',  label = 'Insolubles (calculated)',ls=(0, (1, 1)))
         else:
             ax.plot(self.r_pol,self.phiII[1:]/sum(self.phiII[1:]),
-                     '#00B0B2',  label = 'Solubles, calculated')
+                     '#00B0B2',  label = 'Solubles (calculated)',ls= (0, (5, 1)))
             ax.plot(self.r_pol,self.phiI[1:]/sum(self.phiI[1:]),
-                     '#FF6900',  label = 'Insolubles, calculated')
-            ax.set_xlabel('Chain length, $r_i$')
-            ax.set_ylabel('Mass fraction, $w_i$')
-            ax.set_title(self.label+', A = '+str(self.A))
-            ax.legend()
+                     '#FF6900',  label = 'Insolubles (calculated)',ls= (0, (1, 1)))
 
     #########################
 

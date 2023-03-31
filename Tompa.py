@@ -3,7 +3,7 @@ from PolyLLE import PolyLLE
 
 class Tompa (PolyLLE):
 
-    def __init__ (self, label = 'pol', z_sol=0.98,
+    def __init__ (self, label = '', z_sol=0.98,
                   shulz_kind = '1P', r_pol = np.arange(10,10**4), 
                   p = [0.999,0.995], 
                   teta1 = None, teta2 = None,

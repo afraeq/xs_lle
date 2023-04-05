@@ -169,16 +169,17 @@ class PolyLLE (ABC):
         elif self.equilibrium_method == 'optimize':  
             
             result = self.min_gibbs_energy()
+
+        if self.phiI[0] > self.phiII[0]:
+            self.xs_model = self.phiI[1:]/sum(self.phiI[1:])
+            self.ins_model = self.phiII[1:]/sum(self.phiII[1:])
+        else:
+            self.xs_model = self.phiII[1:]/sum(self.phiII[1:])
+            self.ins_model = self.phiI[1:]/sum(self.phiI[1:])
                 
         if result.success:
-            if self.phiI[0] > self.phiII[0]:
-                xs_model = self.phiI[1:]/sum(self.phiI[1:])
-                ins_model = self.phiII[1:]/sum(self.phiII[1:])
-            else:
-                xs_model = self.phiII[1:]/sum(self.phiII[1:])
-                ins_model = self.phiI[1:]/sum(self.phiI[1:])
-            return (sum((xs_model-self.xs_exp)**2) + 
-                    sum((ins_model-self.ins_exp)**2))
+            return (sum((self.xs_model-self.xs_exp)**2) + 
+                    sum((self.ins_model-self.ins_exp)**2))
         else:
             return 1000
 
@@ -222,16 +223,12 @@ class PolyLLE (ABC):
             ax.plot(self.r_pol, self.feed_exp, 
                    'k', label = 'Feed')
 
-        if self.phiI[0] > self.phiII[0]:
-            ax.plot(self.r_pol,self.phiI[1:]/sum(self.phiI[1:]),
-                     '#00B0B2', label = 'Solubles (calculated)',ls= (0, (5, 1)))
-            ax.plot(self.r_pol,self.phiII[1:]/sum(self.phiII[1:]),
-                     '#FF6900',  label = 'Insolubles (calculated)',ls=(0, (1, 1)))
-        else:
-            ax.plot(self.r_pol,self.phiII[1:]/sum(self.phiII[1:]),
-                     '#00B0B2',  label = 'Solubles (calculated)',ls= (0, (5, 1)))
-            ax.plot(self.r_pol,self.phiI[1:]/sum(self.phiI[1:]),
-                     '#FF6900',  label = 'Insolubles (calculated)',ls= (0, (1, 1)))
+        ax.plot(self.r_pol,self.xs_model,
+                '#00B0B2', label = 'Solubles (calculated)',
+                ls= (0, (5, 1)))
+        ax.plot(self.r_pol,self.ins_model,
+                '#FF6900',  label = 'Insolubles (calculated)',
+                ls=(0, (1, 1)))
 
     #########################
 
